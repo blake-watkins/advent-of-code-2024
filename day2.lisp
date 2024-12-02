@@ -10,13 +10,11 @@
         (setf levels (rest levels)))))
 
 (defun is-dampened-safe (levels)
-  (or (is-safe levels)
-      (iter
-        (for i below (length levels))
-        (for dampened = (concatenate 'list
-                                     (subseq levels 0 i)
-                                     (subseq levels (1+ i))))
-        (thereis (is-safe dampened)))))
+  (iter
+    (for i below (length levels))
+    (for dampened =
+         (concatenate 'list (subseq levels 0 i) (subseq levels (1+ i))))
+    (thereis (is-safe dampened))))
 
 (defun day2 (input &key (part 1))
   (iter
