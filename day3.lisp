@@ -13,28 +13,22 @@
     (parse-string ",")
     (assign b (parse-mul-num))
     (parse-string ")")
-    (unit (list a b))))
+    (unit (* a b))))
 
-(defun parse-commands (enabled)
+(defun parse-command ()
   (either
-   (with-monad
-     (if enabled
-         (either
-          (with-monad
-            (assign ret (parse-mul))
-            (assign rest (parse-commands enabled))
-            (unit (cons ret rest)))
-          (then (parse-string "don't()") (parse-commands nil)))
-         (then (parse-string "do()") (parse-commands t))))
-   (with-monad
-     (parse-any-character)
-     (parse-commands enabled))
-   (unit '())))
+   (parse-mul)
+   (then (parse-string "don't()") (unit :dont))
+   (then (parse-string "do()") (unit :do))))
 
 (defun day3 (input &key (part 1))
-  (let ((parsed (run-parser
-                 (if (= part 1)
-                     (zero-or-more (parse-until (parse-mul)))
-                     (parse-commands t))
-                 input)))
-    (iter (for (a b) in parsed) (sum (* a b)))))
+  (let ((parsed (run-parser (zero-or-more (parse-until (parse-command))) input)))
+    (iter
+      (with enabled = t)
+      (for x in parsed)
+      (cond
+        ((and (numberp x)
+              (or (= part 1) enabled))
+         (sum x))
+        ((eq :dont x) (setf enabled nil))
+        ((eq :do x) (setf enabled t))))))
