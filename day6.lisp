@@ -1,0 +1,72 @@
+(in-package :aoc-2024)
+
+(defun parse-map ()
+  (bind (parse-lines (one-or-more (parse-character ".#^")))
+        (lambda (chars)
+          (let ((start-pos (iter outer
+                             (for r index-of-sequence chars)
+                             (for row in chars)
+                             (iter
+                               (for c index-of-sequence row)
+                               (for square in row)
+                               (when (char= #\^ square)
+                                 (return-from outer (list r c)))))))
+            (unit (list start-pos chars))))))
+
+(defparameter *dirs* '((:up . (-1 0))
+                       (:right . (0 1))
+                       (:down . (1 0))
+                       (:left . (0 -1))))
+
+(defun move (cur dir)
+  (mapcar #'+ cur (cdr (assoc dir *dirs*))))
+
+(defun turn-right (dir)
+  (first (elt *dirs* (mod (1+ (position dir *dirs* :key #'first))
+                          (length *dirs*)))))
+
+(defun day6 (input)
+  (destructuring-bind (cur squares) (run-parser (parse-map) input)
+    (iter
+      (with map = (hash-table-from-list-list squares))
+      (with dir = :up)
+      (with num-visited = 0)
+      (for cur-square = (gethash cur map))
+      (unless (char= #\* cur-square)
+        (incf num-visited)
+        (setf (gethash cur map) #\*))
+      (for next = (move cur dir))
+      (for next-square = (gethash next map))
+      (while next-square)
+      (if (char= #\# next-square)
+          (setf dir (turn-right dir))
+          (setf cur next))
+      (finally (return num-visited)))))
+
+(defun loops (cur map)
+  (iter
+    (with dir = :up)
+    (for cur-square = (gethash cur map))
+    (until (and (listp cur-square) (find dir cur-square)))
+    (setf (gethash cur map)
+          (if (listp cur-square) (cons dir cur-square) (list dir)))
+    (for next = (move cur dir))
+    (for next-square = (gethash next map))
+    (while next-square)
+    (if (and (characterp next-square) (char= #\# next-square))
+        (setf dir (turn-right dir))
+        (setf cur next))
+    (finally (return next-square))))
+
+(defun day6-2 (input)
+  (destructuring-bind (start squares) (run-parser (parse-map) input)
+    (iter
+      (for r index-of-sequence squares)
+      (for row in squares)
+      (sum (iter
+             (for c index-of-sequence row)
+             (for square in row)
+             (counting (and (char= #\. square)
+                            (let ((map (hash-table-from-list-list squares)))
+                              (setf (gethash (list r c) map) #\#)
+                              (loops start map)))))))))
