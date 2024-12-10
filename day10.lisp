@@ -26,9 +26,9 @@
   (let* ((parsed (run-parser (parse-map) input))
          (map (hash-table-from-list-list parsed)))
     (iter
-      (for start in (alexandria:hash-table-keys map))      
-      (when (= 0 (gethash start map))
+      (for (start-pos start-val) in-hashtable map)
+      (when (= 0 start-val)
         (let ((visited (if (= part 1)
                            (make-hash-table :test 'equal)
                            '())))
-          (sum (score start visited map)))))))
+          (sum (score start-pos visited map)))))))
